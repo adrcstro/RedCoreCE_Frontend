@@ -3,13 +3,19 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <!-- Header -->
       <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
-        <h3 class="text-lg leading-6 font-medium text-gray-900">Users</h3>
-        <router-link
-          to="/users/create"
-          class="inline-flex items-center px-4 py-2 bg-gray-100 sahdow-md border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 active:bg-blue-900 focus:outline-none focus:border-blue-900 focus:ring ring-blue-300 disabled:opacity-25 transition ease-in-out duration-150"
-        >
-          <PlusIcon class="w-4 h-4 mr-2" /> Add User
-        </router-link>
+        <h3 class="text-lg leading-6 font-medium text-gray-900">User Information Table</h3>
+    <!-- Replace the existing router-link button with this -->
+<router-link
+  to="/users/create"
+  class="group relative flex justify-center items-center py-2 px-3 border border-transparent 
+         text-base font-semibold rounded-xl text-white bg-gradient-to-r from-blue-600 to-indigo-600 
+         hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 
+         focus:ring-blue-500 transform transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] 
+         shadow-lg hover:shadow-xl"
+>
+  <PlusIcon class=" text-white h-5 w-5 mr-2" />
+  <span class="text-white">Add User</span>
+</router-link>
       </div>
 
       <!-- Feedback Message -->

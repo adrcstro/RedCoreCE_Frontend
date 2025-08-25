@@ -17,7 +17,7 @@
         <div class="bg-white p-6 sm:p-8 rounded-2xl text-start">
           <form class="space-y-6" @submit.prevent="handleSubmit">
             
-            <!-- Full Name + Email in same row -->
+            <!-- Full Name and Email in same row -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <!-- Full Name -->
               <div class="space-y-1">
@@ -56,7 +56,7 @@
                     :class="errors.email ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'"
                   />
                 </div>
-                <p v-if="errors.email" class="text-sm text-red-600 mt-1">{{ errors.email[0] }}</p>
+                <p v-if="errors.email" class="text-sm text-red-600 mt-1">{{ getEmailErrorMessage() }}</p>
               </div>
             </div>
 
@@ -81,7 +81,7 @@
               <p v-if="errors.role_id" class="text-sm text-red-600 mt-1">{{ errors.role_id[0] }}</p>
             </div>
 
-            <!-- Password (only on create) -->
+            <!-- Password (only on create or when editing with password change) -->
             <div class="space-y-1" v-if="!isEdit">
               <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
               <div class="relative">
@@ -93,13 +93,24 @@
                   v-model="form.password"
                   type="password"
                   placeholder="Enter password"
+                  @blur="validatePassword"
+                  @input="validatePassword"
                   class="block w-full pl-10 pr-3 py-3 border rounded-xl shadow-sm placeholder-gray-400 text-gray-900 
                         focus:outline-none focus:ring-2 transition-all duration-200 text-base"
-                  :class="errors.password ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'"
+                  :class="(errors.password || validationErrors.password) ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'"
                 />
               </div>
               <p v-if="errors.password" class="text-sm text-red-600 mt-1">{{ errors.password[0] }}</p>
-              <p class="text-xs text-gray-500 mt-1">Minimum length: 8 characters</p>
+              <p v-else-if="validationErrors.password" class="text-sm text-red-600 mt-1">{{ validationErrors.password }}</p>
+              <div class="flex items-center mt-1 space-x-4">
+                <p class="text-xs text-gray-500">Minimum length: 8 characters</p>
+                <div v-if="form.password" class="flex items-center">
+                  <div class="w-2 h-2 rounded-full mr-1" :class="passwordStrengthColor"></div>
+                  <span class="text-xs" :class="passwordStrengthColor.replace('bg-', 'text-')">
+                    {{ passwordStrengthText }}
+                  </span>
+                </div>
+              </div>
             </div>
 
             <!-- Confirm Password (only on create) -->
@@ -114,12 +125,19 @@
                   v-model="form.password_confirmation"
                   type="password"
                   placeholder="Confirm password"
+                  @blur="validatePasswordConfirmation"
+                  @input="validatePasswordConfirmation"
                   class="block w-full pl-10 pr-3 py-3 border rounded-xl shadow-sm placeholder-gray-400 text-gray-900 
                         focus:outline-none focus:ring-2 transition-all duration-200 text-base"
-                  :class="errors.password_confirmation ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'"
+                  :class="(errors.password_confirmation || validationErrors.password_confirmation) ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'"
                 />
               </div>
               <p v-if="errors.password_confirmation" class="text-sm text-red-600 mt-1">{{ errors.password_confirmation[0] }}</p>
+              <p v-else-if="validationErrors.password_confirmation" class="text-sm text-red-600 mt-1">{{ validationErrors.password_confirmation }}</p>
+              <div v-if="form.password_confirmation && !validationErrors.password_confirmation && !errors.password_confirmation" class="flex items-center mt-1">
+                <CheckCircleIcon class="h-4 w-4 text-green-500 mr-1" />
+                <span class="text-xs text-green-600">Passwords match</span>
+              </div>
             </div>
 
             <!-- Alerts -->
@@ -143,7 +161,7 @@
             <div class="flex items-center justify-between gap-4">
               <button
                 type="submit"
-                :disabled="loading"
+                :disabled="loading || !isFormValid"
                 class="w-full group relative flex justify-center items-center py-3 px-6 border border-transparent 
                        text-base font-semibold rounded-xl text-white bg-gradient-to-r from-blue-600 to-indigo-600 
                        hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 
@@ -161,7 +179,6 @@
     </div>
   </div>
 </template>
-
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue'
@@ -198,9 +215,45 @@ const form = reactive<User>({
 
 const roles = ref<any[]>([])
 const errors = ref<any>({})
+const validationErrors = ref<any>({})
 const loading = ref(false)
 const generalErrors = ref<string[]>([])
 const successMessage = ref<string>('')
+
+// Password strength indicator
+const passwordStrengthColor = computed(() => {
+  const password = form.password
+  if (!password) return 'bg-gray-300'
+  if (password.length < 8) return 'bg-red-500'
+  if (password.length >= 8 && password.length < 12) return 'bg-yellow-500'
+  return 'bg-green-500'
+})
+
+const passwordStrengthText = computed(() => {
+  const password = form.password
+  if (!password) return ''
+  if (password.length < 8) return 'Too short'
+  if (password.length >= 8 && password.length < 12) return 'Good'
+  return 'Strong'
+})
+
+// Form validation computed property
+const isFormValid = computed(() => {
+  if (isEdit.value) {
+    // For edit mode, basic validation
+    return form.name && form.email && form.role_id && !Object.keys(validationErrors.value).length
+  } else {
+    // For create mode, include password validation
+    return (
+      form.name &&
+      form.email &&
+      form.role_id &&
+      form.password &&
+      form.password_confirmation &&
+      !Object.keys(validationErrors.value).length
+    )
+  }
+})
 
 onMounted(async () => {
   await fetchRoles()
@@ -228,11 +281,100 @@ const fetchUser = async (id: number) => {
   }
 }
 
+// Password validation function
+const validatePassword = () => {
+  const password = form.password
+  validationErrors.value = { ...validationErrors.value }
+  
+  if (!isEdit.value) { // Only validate on create mode
+    if (!password) {
+      validationErrors.value.password = 'Password is required'
+    } else if (password.length < 8) {
+      validationErrors.value.password = 'Password must be at least 8 characters long'
+    } else {
+      delete validationErrors.value.password
+    }
+  }
+  
+  // Also validate password confirmation when password changes
+  if (form.password_confirmation) {
+    validatePasswordConfirmation()
+  }
+}
+
+// Password confirmation validation function
+const validatePasswordConfirmation = () => {
+  const password = form.password
+  const passwordConfirmation = form.password_confirmation
+  validationErrors.value = { ...validationErrors.value }
+  
+  if (!isEdit.value) { // Only validate on create mode
+    if (!passwordConfirmation) {
+      validationErrors.value.password_confirmation = 'Password confirmation is required'
+    } else if (password !== passwordConfirmation) {
+      validationErrors.value.password_confirmation = 'Passwords do not match'
+    } else {
+      delete validationErrors.value.password_confirmation
+    }
+  }
+}
+
+// Function to get custom email error message
+const getEmailErrorMessage = () => {
+  if (!errors.value.email) return ''
+  
+  const emailError = errors.value.email[0]
+  
+  // Check if the error indicates email already exists
+  if (emailError && (
+    emailError.toLowerCase().includes('already') ||
+    emailError.toLowerCase().includes('exists') ||
+    emailError.toLowerCase().includes('taken') ||
+    emailError.toLowerCase().includes('duplicate')
+  )) {
+    return 'This email already exists'
+  }
+  
+  // Return original error message for other email validation errors
+  return emailError
+}
+
 const handleSubmit = async () => {
-  loading.value = true
+  // Clear previous errors
   errors.value = {}
+  validationErrors.value = {}
   generalErrors.value = []
   successMessage.value = ''
+
+  // Run client-side validation
+  if (!isEdit.value) {
+    validatePassword()
+    validatePasswordConfirmation()
+    
+    // Check if there are validation errors
+    if (Object.keys(validationErrors.value).length > 0) {
+      generalErrors.value = ['Please fix the validation errors before submitting']
+      return
+    }
+  }
+
+  // Basic required field validation
+  if (!form.name) {
+    validationErrors.value.name = ['Full name is required']
+  }
+  if (!form.email) {
+    validationErrors.value.email = ['Email is required']
+  }
+  if (!form.role_id) {
+    validationErrors.value.role_id = ['Role is required']
+  }
+
+  if (Object.keys(validationErrors.value).length > 0) {
+    generalErrors.value = ['Please fill in all required fields']
+    return
+  }
+
+  loading.value = true
 
   try {
     if (isEdit.value && userId.value) {
@@ -252,6 +394,19 @@ const handleSubmit = async () => {
   } catch (error: any) {
     if (error.response?.data?.errors) {
       errors.value = error.response.data.errors
+    } else if (error.response?.status === 422) {
+      // Handle specific 422 errors
+      if (error.response?.data?.message) {
+        // Check if it's an email duplicate error
+        const message = error.response.data.message.toLowerCase()
+        if (message.includes('email') && (message.includes('already') || message.includes('exists') || message.includes('taken'))) {
+          errors.value = { email: ['This email already exists'] }
+        } else {
+          generalErrors.value = [error.response.data.message]
+        }
+      } else {
+        generalErrors.value = ['This email already exists. Please choose another.']
+      }
     } else if (error.message) {
       generalErrors.value = [error.message]
     } else {

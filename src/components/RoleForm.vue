@@ -2,7 +2,7 @@
   <div class="flex flex-col bg-white">
     <div class="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 py-8">
       <div class="max-w-3xl w-full">
-        <!-- Header -->
+       
         <div class="text-center mt-12 mb-2">
           <h2 class="mt-2 text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
             {{ isEdit ? 'Edit Role' : 'Create User Role' }}
@@ -12,10 +12,10 @@
           </p>
         </div>
 
-        <!-- Form -->
+        
         <div class="bg-white p-6 sm:p-8 rounded-2xl text-start">
           <form class="space-y-6" @submit.prevent="handleSubmit">
-            <!-- Role Name -->
+           
             <div class="space-y-1">
               <label for="name" class="block text-sm font-medium text-gray-700">Role Name</label>
               <div class="relative">
@@ -36,7 +36,7 @@
               <p v-if="errors.name" class="text-sm text-red-600 mt-1">{{ errors.name }}</p>
             </div>
 
-            <!-- Role Description -->
+           
             <div class="space-y-1">
               <label for="description" class="block text-sm font-medium text-gray-700">Description</label>
               <div class="relative">
@@ -56,7 +56,7 @@
               <p v-if="errors.description" class="text-sm text-red-600 mt-1">{{ errors.description }}</p>
             </div>
 
-            <!-- Error Alerts -->
+           
             <div v-if="generalErrors.length" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl">
               <div class="flex">
                 <ExclamationCircleIcon class="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
@@ -66,7 +66,7 @@
               </div>
             </div>
 
-            <!-- Success Alert -->
+      
             <div v-if="successMessage" class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl">
               <div class="flex">
                 <ClipboardDocumentCheckIcon class="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
@@ -74,7 +74,6 @@
               </div>
             </div>
 
-            <!-- Buttons -->
             <div>
               <button
                 type="submit"
@@ -99,7 +98,7 @@ import { ref, reactive, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { roleService } from '../services/auth'
 
-// Heroicons
+
 import {
   IdentificationIcon,
   ClipboardDocumentListIcon,
@@ -192,9 +191,9 @@ const handleSubmit = async () => {
     }
     setTimeout(() => router.push('/roles'), 1000)
   } catch (error: any) {
-    // Handle validation errors
+
     if (error.response && error.response.status === 422) {
-      // check backend response
+  
       if (error.response.data?.errors?.name) {
         errors.value.name = 'This role name already exists. Please choose another.'
       } else {

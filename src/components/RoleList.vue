@@ -3,16 +3,20 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <!-- Header -->
       <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
-        <h3 class="text-lg leading-6 font-medium text-gray-900">Roles</h3>
-        <router-link
-          to="/roles/create"
-          class="inline-flex items-center px-4 py-2 bg-gray-100 shadow-md border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 active:bg-blue-900 focus:outline-none focus:border-blue-900 focus:ring ring-blue-300 disabled:opacity-25 transition ease-in-out duration-150"
-        >
-          <PlusIcon class="w-4 h-4 mr-2" /> Add Role
-        </router-link>
+        <h3 class="text-lg leading-6 font-medium text-gray-900">Roles Information Table</h3>
+<router-link
+    to="/roles/create"
+  class="group relative flex justify-center items-center py-2 px-3 border border-transparent 
+         text-base font-semibold rounded-xl text-white bg-gradient-to-r from-blue-600 to-indigo-600 
+         hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 
+         focus:ring-blue-500 transform transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] 
+         shadow-lg hover:shadow-xl"
+>
+  <PlusIcon class=" text-white h-5 w-5 mr-2" />
+  <span class="text-white">Add Role</span>
+</router-link>
       </div>
-
-      <!-- Feedback Message -->
+      
       <div v-if="message" class="mb-4">
         <div
           :class="[
@@ -26,7 +30,7 @@
         </div>
       </div>
 
- <!-- Search Bar -->
+
 <div class="flex items-center mb-4">
   <div class="relative w-full">
     <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
@@ -42,7 +46,7 @@
 </div>
 
 
-      <!-- Table -->
+
       <div class="mt-5 shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
@@ -84,7 +88,7 @@
         </table>
       </div>
 
-      <!-- Pagination -->
+    
       <div class="flex justify-between items-center mt-4">
         <button
           @click="prevPage"
