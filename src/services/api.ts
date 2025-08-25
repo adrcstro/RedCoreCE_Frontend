@@ -7,7 +7,7 @@ const apiClient = axios.create({
   },
 });
 
-// Request interceptor to add auth token
+
 apiClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('auth_token');
@@ -21,7 +21,7 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle token refresh
+
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -30,7 +30,7 @@ apiClient.interceptors.response.use(
     if (error.response.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       
-      // Try to refresh token
+   
       try {
         const refreshToken = localStorage.getItem('refresh_token');
         const response = await apiClient.post('/auth/refresh', { refresh_token: refreshToken });
@@ -39,10 +39,10 @@ apiClient.interceptors.response.use(
         localStorage.setItem('auth_token', token);
         apiClient.defaults.headers.Authorization = `Bearer ${token}`;
         
-        // Retry the original request
+       
         return apiClient(originalRequest);
       } catch (refreshError) {
-        // Refresh failed, redirect to login
+      
         localStorage.removeItem('auth_token');
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('user');

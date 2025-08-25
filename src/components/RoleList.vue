@@ -1,13 +1,48 @@
 <template>
   <div class="py-6">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <!-- Header -->
       <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
         <h3 class="text-lg leading-6 font-medium text-gray-900">Roles</h3>
-        <router-link to="/roles/create" class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 active:bg-blue-900 focus:outline-none focus:border-blue-900 focus:ring ring-blue-300 disabled:opacity-25 transition ease-in-out duration-150">
-          Add Role
+        <router-link
+          to="/roles/create"
+          class="inline-flex items-center px-4 py-2 bg-gray-100 shadow-md border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 active:bg-blue-900 focus:outline-none focus:border-blue-900 focus:ring ring-blue-300 disabled:opacity-25 transition ease-in-out duration-150"
+        >
+          <PlusIcon class="w-4 h-4 mr-2" /> Add Role
         </router-link>
       </div>
-      
+
+      <!-- Feedback Message -->
+      <div v-if="message" class="mb-4">
+        <div
+          :class="[
+            'p-3 rounded-md text-sm font-medium',
+            messageType === 'success'
+              ? 'bg-green-100 text-green-700'
+              : 'bg-red-100 text-red-700'
+          ]"
+        >
+          {{ message }}
+        </div>
+      </div>
+
+ <!-- Search Bar -->
+<div class="flex items-center mb-4">
+  <div class="relative w-full">
+    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+      <MagnifyingGlassIcon class="w-5 h-5 text-gray-400" />
+    </div>
+    <input
+      v-model="searchQuery"
+      type="text"
+      placeholder="Search roles..."
+      class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+    />
+  </div>
+</div>
+
+
+      <!-- Table -->
       <div class="mt-5 shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
@@ -18,36 +53,86 @@
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="role in roles" :key="role.id">
+            <tr v-for="role in paginatedRoles" :key="role.id">
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="text-sm font-medium text-gray-900">{{ role.name }}</div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="text-sm text-gray-500">{{ role.description }}</div>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                <router-link :to="`/roles/edit/${role.id}`" class="text-blue-600 hover:text-blue-900 mr-3">Edit</router-link>
-                <button @click="deleteRole(role.id!)" class="text-red-600 hover:text-red-900">Delete</button>
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium flex space-x-3">
+                <router-link
+                  :to="`/roles/edit/${role.id}`"
+                  class="text-blue-600 hover:text-blue-900 flex items-center"
+                >
+                  <PencilSquareIcon class="w-4 h-4 mr-1" /> Edit
+                </router-link>
+                <button
+                  @click="deleteRole(role.id)"
+                  class="text-red-600 hover:text-red-900 flex items-center"
+                >
+                  <TrashIcon class="w-4 h-4 mr-1" /> Delete
+                </button>
+              </td>
+            </tr>
+            <tr v-if="paginatedRoles.length === 0">
+              <td colspan="3" class="px-6 py-4 text-center text-sm text-gray-500">
+                No roles found.
               </td>
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="flex justify-between items-center mt-4">
+        <button
+          @click="prevPage"
+          :disabled="currentPage === 1"
+          class="px-3 py-1 bg-gray-200 text-gray-700 rounded disabled:opacity-50 flex items-center"
+        >
+          Prev
+        </button>
+        <span class="text-sm text-gray-600">
+          Page {{ currentPage }} of {{ totalPages }}
+        </span>
+        <button
+          @click="nextPage"
+          :disabled="currentPage === totalPages"
+          class="px-3 py-1 bg-gray-200 text-gray-700 rounded disabled:opacity-50 flex items-center"
+        >
+          Next
+        </button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import { roleService } from '../services/auth';
+import { ref, onMounted, computed, watch } from "vue";
+import { roleService } from "../services/auth";
+import { useAuthStore } from "../store/auth";
+import { useRouter } from "vue-router";
+
+// Heroicons
+import { MagnifyingGlassIcon, PlusIcon, PencilSquareIcon, TrashIcon } from "@heroicons/vue/24/outline";
 
 interface Role {
-  id?: number;
+  id: number;
   name: string;
   description: string;
 }
 
+const authStore = useAuthStore();
+const router = useRouter();
 const roles = ref<Role[]>([]);
+const searchQuery = ref("");
+const message = ref("");
+const messageType = ref<"success" | "error">("success");
+
+// Pagination state
+const currentPage = ref(1);
+const itemsPerPage = 5;
 
 onMounted(async () => {
   await fetchRoles();
@@ -58,19 +143,60 @@ const fetchRoles = async () => {
     const response = await roleService.getRoles();
     roles.value = response;
   } catch (error) {
-    console.error('Failed to fetch roles:', error);
+    console.error("Failed to fetch roles:", error);
   }
 };
 
+// Filter roles by search
+const filteredRoles = computed(() => {
+  if (!searchQuery.value) return roles.value;
+  return roles.value.filter(
+    (r) =>
+      r.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      r.description.toLowerCase().includes(searchQuery.value.toLowerCase())
+  );
+});
+
+// Pagination logic
+const totalPages = computed(() =>
+  Math.ceil(filteredRoles.value.length / itemsPerPage)
+);
+
+const paginatedRoles = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage;
+  return filteredRoles.value.slice(start, start + itemsPerPage);
+});
+
+const nextPage = () => {
+  if (currentPage.value < totalPages.value) currentPage.value++;
+};
+
+const prevPage = () => {
+  if (currentPage.value > 1) currentPage.value--;
+};
+
+// Delete Role with validation message
 const deleteRole = async (id: number) => {
-  if (!confirm('Are you sure you want to delete this role?')) return;
-  
+  if (!confirm("Are you sure you want to delete this role?")) return;
+
   try {
     await roleService.deleteRole(id);
     await fetchRoles();
+    message.value = "Role deleted successfully!";
+    messageType.value = "success";
   } catch (error: any) {
-    console.error('Failed to delete role:', error);
-    alert(error.message || 'Failed to delete role. Please try again.');
+    console.error("Failed to delete role:", error);
+    message.value = error.message || "Failed to delete role. Please try again.";
+    messageType.value = "error";
   }
 };
+
+// Redirect if not admin
+watch(
+  () => authStore.user,
+  (val) => {
+    if (val?.role_id !== 1) router.push("/");
+  },
+  { immediate: true }
+);
 </script>

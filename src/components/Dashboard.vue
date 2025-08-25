@@ -6,7 +6,8 @@
         <p class="mt-1 max-w-2xl text-sm text-gray-500">Welcome to the User Management System</p>
       </div>
       
-      <div class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2">
+      <!-- Only show analytics cards for role_id = 1 -->
+      <div v-if="user?.role_id === 1" class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2">
         <div class="bg-white overflow-hidden shadow rounded-lg">
           <div class="px-4 py-5 sm:p-6">
             <div class="flex items-center">
@@ -57,13 +58,24 @@
           </div>
         </div>
       </div>
+
+      <!-- Show welcome message only for role_id = 2 -->
+      <div v-else class="mt-5 bg-white overflow-hidden shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+          <div class="text-center">
+            <h3 class="text-lg font-medium text-gray-900">Welcome, {{ user?.name }}</h3>
+            <p class="mt-2 text-sm text-gray-500">You are logged in as a regular user.</p>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { userService, roleService } from '../services/auth';
+import { useAuthStore } from '../store/auth';
 
 interface Stats {
   users: number;
@@ -75,19 +87,25 @@ const stats = ref<Stats>({
   roles: 0
 });
 
+const authStore = useAuthStore();
+const user = computed(() => authStore.user);
+
 onMounted(async () => {
-  try {
-    const [users, roles] = await Promise.all([
-      userService.getUsers(),
-      roleService.getRoles()
-    ]);
-    
-    stats.value = {
-      users: users.length,
-      roles: roles.length
-    };
-  } catch (error) {
-    console.error('Failed to fetch stats:', error);
+  // Only fetch stats if user has role_id = 1
+  if (user.value?.role_id === 1) {
+    try {
+      const [users, roles] = await Promise.all([
+        userService.getUsers(),
+        roleService.getRoles()
+      ]);
+      
+      stats.value = {
+        users: users.length,
+        roles: roles.length
+      };
+    } catch (error) {
+      console.error('Failed to fetch stats:', error);
+    }
   }
 });
 </script>
